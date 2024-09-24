@@ -2,7 +2,7 @@ import display, keypad, time
 import sndmixer
 import random
 
-vol = 30  # Sound volume level
+vol = 20  # Sound volume level
 on = 0xFF0000  # Red color for "bomb" (can be any color code)
 off = 0x000000  # No light
 
@@ -70,7 +70,7 @@ def on_key(key_index, pressed):
     if pressed:
         if key_index in active_bombs:  # Player hit an active bomb!
             # Play success sound
-            play_tone(440, 200)
+            play_tone(440, 90)
 
             # Remove the bomb from the active list
             active_bombs.remove(key_index)
