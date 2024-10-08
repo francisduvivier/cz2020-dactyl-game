@@ -4,7 +4,10 @@ import random
 
 # Constants
 VOL = 20  # Sound volume level
-ON = 0xFF0000  # Red color for "bomb"
+GREEN = 0x00FF00
+YELLOW = 0xFFFF00
+ORANGE = 0xFF8C00
+RED = 0xFF0000
 OFF = 0x000000  # No light
 INITIAL_TIME_LIMIT = 2000  # 2 seconds for bomb expiration
 INITIAL_BOMB_INTERVAL = 1200  # Initial bomb planting interval (in ms)
@@ -12,6 +15,14 @@ INTERVAL_DECREASER = 0.95
 MIN_BOMB_INTERVAL = 100  # Minimum interval for bomb planting
 SUCCESS_TONE = 440  # Frequency for success sound
 FAILURE_TONE = 220  # Frequency for failure sound
+
+# Color transition thresholds (percentage of time remaining)
+COLOR_THRESHOLDS = [
+    (0.25, RED),     # Less than 25% time remaining
+    (0.50, ORANGE),  # Less than 50% time remaining
+    (0.75, YELLOW),  # Less than 75% time remaining
+    (1.00, GREEN)    # Full time remaining
+]
 
 class BombGame:
     def __init__(self):
@@ -36,6 +47,23 @@ class BombGame:
         display.drawFill(OFF)
         display.flush()
 
+    def get_bomb_color(self, elapsed_time):
+        """Determine bomb color based on elapsed time."""
+        time_ratio = elapsed_time / INITIAL_TIME_LIMIT
+        for threshold, color in COLOR_THRESHOLDS:
+            if time_ratio <= threshold:
+                return color
+        return GREEN
+
+    def update_bomb_colors(self, current_time):
+        """Update the color of all active bombs based on their time remaining."""
+        for pos, spawn_time in self.active_bombs.items():
+            elapsed = time.ticks_diff(current_time, spawn_time)
+            color = self.get_bomb_color(elapsed)
+            x, y = pos % 4, pos // 4
+            display.drawPixel(x, y, color)
+        display.flush()
+
     def plant_bomb(self):
         """Plant a bomb at a random available position."""
         available_positions = [i for i in range(16) if i not in self.active_bombs]
@@ -45,7 +73,7 @@ class BombGame:
             current_time = time.ticks_ms()
             self.active_bombs[bomb_position] = current_time
             x, y = bomb_position % 4, bomb_position // 4
-            display.drawPixel(x, y, ON)
+            display.drawPixel(x, y, GREEN)  # Start with green color
             display.flush()
             self.last_bomb_time = current_time
 
@@ -84,7 +112,7 @@ class BombGame:
         else:
             # Wrong button pressed - game over
             self.game_over = True
-            print("Game Over! Score: "+ str(self.score))
+            print("Game Over! Score: " + str(self.score))
             self.play_tone(FAILURE_TONE, 500)
 
     def update(self):
@@ -98,13 +126,16 @@ class BombGame:
         if time.ticks_diff(current_time, self.last_bomb_time) > self.bomb_interval:
             self.plant_bomb()
 
+        # Update colors of existing bombs
+        self.update_bomb_colors(current_time)
+
         # Check for expired bombs
         expired = [pos for pos, spawn_time in self.active_bombs.items()
                    if time.ticks_diff(current_time, spawn_time) > INITIAL_TIME_LIMIT]
 
         if expired:
             self.game_over = True
-            print("Time ran out! Game Over! Score: "+str(self.score))
+            print("Time ran out! Game Over! Score: " + str(self.score))
             self.play_tone(FAILURE_TONE, 500)
 
 # Create game instance and set up
