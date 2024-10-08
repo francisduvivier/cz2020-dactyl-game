@@ -3,7 +3,7 @@ import sndmixer
 import random
 
 # Constants
-VOL = 20  # Sound volume level
+VOL = 30  # Sound volume level
 GREEN = 0x00FF00
 YELLOW = 0xFFFF00
 ORANGE = 0xFF8C00
@@ -51,7 +51,7 @@ class BombGame:
         """Determine bomb color based on elapsed time."""
         time_ratio = elapsed_time / INITIAL_TIME_LIMIT
         for threshold, color in COLOR_THRESHOLDS:
-            if time_ratio <= threshold:
+            if 1 - time_ratio <= threshold:
                 return color
         return GREEN
 
