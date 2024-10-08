@@ -2,121 +2,118 @@ import display, keypad, time
 import sndmixer
 import random
 
-vol = 20  # Sound volume level
-on = 0xFF0000  # Red color for "bomb" (can be any color code)
-off = 0x000000  # No light
+# Constants
+VOL = 20  # Sound volume level
+ON = 0xFF0000  # Red color for "bomb"
+OFF = 0x000000  # No light
+INITIAL_TIME_LIMIT = 2000  # 2 seconds for bomb expiration
+INITIAL_BOMB_INTERVAL = 1200  # Initial bomb planting interval (in ms)
+INTERVAL_DECREASER = 0.95
+MIN_BOMB_INTERVAL = 100  # Minimum interval for bomb planting
+SUCCESS_TONE = 440  # Frequency for success sound
+FAILURE_TONE = 220  # Frequency for failure sound
 
-sndmixer.begin(16)
-channels = [None] * 16
+class BombGame:
+    def __init__(self):
+        # Initialize sound
+        sndmixer.begin(16)
+        self.channels = [None] * 16
 
-# Game state variables
-active_bombs = []  # List to track active bomb positions
-time_limit = 1200  # 2 seconds for bomb expiration
-initial_bomb_interval = 1200  # Initial bomb planting interval (in ms)
-bomb_interval = initial_bomb_interval  # Current bomb planting interv * 0.95 = 0.95  # Amount to decrease interval after each bomb
-interval_decreaser = 0.95
-min_bomb_interval = 100  # Minimum interval for bomb planting
-game_over = False
-score = 0
-last_bomb_time = 0  # Track when the last bomb was planted
+        # Game state
+        self.active_bombs = {}  # Dictionary to track active bomb positions and their spawn times
+        self.game_over = False
+        self.score = 0
+        self.bomb_interval = INITIAL_BOMB_INTERVAL
+        self.last_bomb_time = 0
 
-def reset_game():
-    global active_bombs, game_over, score, bomb_interval
-    active_bombs = []
-    game_over = False
-    score = 0
-    bomb_interval = initial_bomb_interval  # Reset the interval
-    display.drawFill(off)
-    display.flush()
-
-def plant_bomb():
-    """Plant a bomb at a random position that isn't already active."""
-    global active_bombs, last_bomb_time
-
-    # Find an empty spot for the new bomb
-    available_positions = [i for i in range(16) if i not in active_bombs]
-
-    if available_positions:
-        bomb_position = random.choice(available_positions)
-        active_bombs.append(bomb_position)
-        x, y = bomb_position % 4, int(bomb_position / 4)
-        display.drawPixel(x, y, on)  # Draw the bomb on the display
+    def reset_game(self):
+        """Reset the game state to initial conditions."""
+        self.active_bombs.clear()
+        self.game_over = False
+        self.score = 0
+        self.bomb_interval = INITIAL_BOMB_INTERVAL
+        self.last_bomb_time = 0
+        display.drawFill(OFF)
         display.flush()
 
-        last_bomb_time = time.ticks_ms()  # Update the last bomb time
+    def plant_bomb(self):
+        """Plant a bomb at a random available position."""
+        available_positions = [i for i in range(16) if i not in self.active_bombs]
 
-def play_tone(frequency, duration_ms):
-    """Plays a tone for the given duration."""
-    synth = sndmixer.synth()
-    sndmixer.volume(synth, vol)
-    sndmixer.waveform(synth, 0)  # Using a basic waveform (0: sine wave)
-    sndmixer.freq(synth, frequency)
-    sndmixer.play(synth)
+        if available_positions:
+            bomb_position = random.choice(available_positions)
+            current_time = time.ticks_ms()
+            self.active_bombs[bomb_position] = current_time
+            x, y = bomb_position % 4, bomb_position // 4
+            display.drawPixel(x, y, ON)
+            display.flush()
+            self.last_bomb_time = current_time
 
-    # Delay for the duration to let the tone play
-    time.sleep_ms(duration_ms)
+    def play_tone(self, frequency, duration_ms):
+        """Play a tone with the given frequency and duration."""
+        synth = sndmixer.synth()
+        sndmixer.volume(synth, VOL)
+        sndmixer.waveform(synth, 0)
+        sndmixer.freq(synth, frequency)
+        sndmixer.play(synth)
+        time.sleep_ms(duration_ms)
+        sndmixer.stop(synth)
 
-    sndmixer.stop(synth)
+    def handle_key(self, key_index, pressed):
+        """Handle key press events."""
+        if self.game_over:
+            if pressed:
+                self.reset_game()
+            return
 
-def on_key(key_index, pressed):
-    global game_over, score, active_bombs
+        if not pressed:
+            return
 
-    if game_over:
-        # If the game is over, reset the game if any key is pressed
-        if pressed:
-            reset_game()
-        return
-
-    if pressed:
-        if key_index in active_bombs:  # Player hit an active bomb!
-            # Play success sound
-            play_tone(440, 90)
-
-            # Remove the bomb from the active list
-            active_bombs.remove(key_index)
-            x, y = key_index % 4, int(key_index / 4)
-            display.drawPixel(x, y, off)  # Clear the bomb from display
+        if key_index in self.active_bombs:
+            # Successful bomb defusal
+            self.play_tone(SUCCESS_TONE, 90)
+            del self.active_bombs[key_index]
+            x, y = key_index % 4, key_index // 4
+            display.drawPixel(x, y, OFF)
             display.flush()
 
-            # Update score
-            score += 1
-
-            # Decrease the bomb interval (to make game harder)
-            global bomb_interval
-            bomb_interval = max(min_bomb_interval, bomb_interval * interval_decreaser)
+            self.score += 1
+            # Make game harder
+            self.bomb_interval = max(MIN_BOMB_INTERVAL,
+                                     self.bomb_interval * INTERVAL_DECREASER)
         else:
-            # Wrong button - game over
-            game_over = True
-            display.flush()
-            print("Game Over! Score:", score)
-            # Play game over sound
-            play_tone(220, 500)
+            # Wrong button pressed - game over
+            self.game_over = True
+            print("Game Over! Score: "+ str(self.score))
+            self.play_tone(FAILURE_TONE, 500)
 
-# Set up the initial game state
-reset_game()
-plant_bomb()  # Plant the first bomb
-keypad.add_handler(on_key)
+    def update(self):
+        """Update game state - plant new bombs and check for expired ones."""
+        if self.game_over:
+            return
 
-# Main loop for bomb timing and handling
-while True:
-    if not game_over:
-        # Plant a new bomb if the interval has passed
         current_time = time.ticks_ms()
-        if time.ticks_diff(current_time, last_bomb_time) > bomb_interval:
-            plant_bomb()
 
-        # Check if any bombs have expired
-        expired_bombs = []
-        for bomb_position in active_bombs:
-            bomb_time = time.ticks_diff(current_time, last_bomb_time)
-            if bomb_time > time_limit:
-                expired_bombs.append(bomb_position)
+        # Plant new bomb if interval has passed
+        if time.ticks_diff(current_time, self.last_bomb_time) > self.bomb_interval:
+            self.plant_bomb()
 
-        # If any bombs expired, trigger game over
-        if expired_bombs:
-            game_over = True
-            display.flush()
-            print("Time ran out! Game Over! Score:", score)
-            play_tone(220, 500)  # Lower tone for failure
+        # Check for expired bombs
+        expired = [pos for pos, spawn_time in self.active_bombs.items()
+                   if time.ticks_diff(current_time, spawn_time) > INITIAL_TIME_LIMIT]
 
-    time.sleep_ms(50)  # Small delay to avoid maxing out CPU
+        if expired:
+            self.game_over = True
+            print("Time ran out! Game Over! Score: "+str(self.score))
+            self.play_tone(FAILURE_TONE, 500)
+
+# Create game instance and set up
+game = BombGame()
+game.reset_game()
+game.plant_bomb()
+keypad.add_handler(game.handle_key)
+
+# Main game loop
+while True:
+    game.update()
+    time.sleep_ms(50)
