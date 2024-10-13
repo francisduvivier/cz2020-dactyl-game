@@ -101,11 +101,12 @@ class BombGame:
         x, y = key_index % 4, key_index // 4
 
         if key_index in self.active_bombs:
-            # Successful bomb defusal
-            self.play_tone(SUCCESS_TONE, 90)
             del self.active_bombs[key_index]
             display.drawPixel(x, y, OFF)
             display.flush()
+            # Successful bomb defusal
+            # self.play_tone(SUCCESS_TONE, 90)
+
 
             self.score += 1
             # Make game harder
@@ -147,7 +148,16 @@ game.reset_game()
 game.plant_bomb()
 keypad.add_handler(game.handle_key)
 
-# Main game loop
+
+def do_update(arg):
+    game.update()
+
+# # Create a Timer object
+# interval_timer = Timer(-1)
+#
+# # Initialize the timer to call the function every 1000 ms (1 second)
+# interval_timer.init(period=50, mode=Timer.PERIODIC, callback=do_update)
+
 while True:
     game.update()
     time.sleep_ms(50)
