@@ -33,6 +33,7 @@ class BombGame:
 
         # Game state
         self.active_bombs = {}  # Dictionary to track active bomb positions and their spawn times
+        self.last_active_bomb=-1
         self.game_over = False
         self.score = 0
         self.bomb_interval = INITIAL_BOMB_INTERVAL
@@ -67,7 +68,7 @@ class BombGame:
 
     def plant_bomb(self):
         """Plant a bomb at a random available position."""
-        available_positions = [i for i in range(16) if i not in self.active_bombs]
+        available_positions = [i for i in range(16) if i not in self.active_bombs and i != self.last_active_bomb]
 
         if available_positions:
             bomb_position = random.choice(available_positions)
@@ -102,6 +103,8 @@ class BombGame:
 
         if key_index in self.active_bombs:
             del self.active_bombs[key_index]
+            self.last_active_bomb = key_index
+
             display.drawPixel(x, y, OFF)
             display.flush()
             # Successful bomb defusal
