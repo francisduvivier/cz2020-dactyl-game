@@ -79,9 +79,9 @@ class BombGame:
             display.flush()
             self.last_bomb_time = current_time
 
-    def play_tone(self, frequency, duration_ms, vol= VOL):
+    def play_tone(self, frequency, duration_ms, vol = VOL):
         """Play a tone with the given frequency and duration."""
-        synth = sndmixer.synth(),
+        synth = sndmixer.synth()
         sndmixer.volume(synth, vol)
         sndmixer.waveform(synth, 0)
         sndmixer.freq(synth, frequency)
@@ -119,8 +119,8 @@ class BombGame:
             display.flush()
             # Wrong button pressed - game over
             self.game_over = True
+            self.play_tone(FAILURE_TONE, 1000, vol=VOL*2)
             print("Game Over! Score: " + str(self.score))
-            self.play_tone(FAILURE_TONE, 1000, VOL*2)
 
     def update(self):
         """Update game state - plant new bombs and check for expired ones."""
@@ -142,8 +142,8 @@ class BombGame:
 
         if expired:
             self.game_over = True
+            self.play_tone(FAILURE_TONE, 1000, vol=VOL*2)
             print("Time ran out! Game Over! Score: " + str(self.score))
-            self.play_tone(FAILURE_TONE, 500)
 
 # Create game instance and set up
 game = BombGame()
