@@ -15,7 +15,7 @@ INITIAL_BOMB_INTERVAL = 1200  # Initial bomb planting interval (in ms)
 INTERVAL_DECREASER = 0.95
 MIN_BOMB_INTERVAL = 100  # Minimum interval for bomb planting
 SUCCESS_TONE = 440  # Frequency for success sound
-FAILURE_TONE = 220  # Frequency for failure sound
+FAILURE_TONE = 330  # Frequency for failure sound
 
 # Color transition thresholds (percentage of time remaining)
 COLOR_THRESHOLDS = [
