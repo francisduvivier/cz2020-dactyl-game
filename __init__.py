@@ -4,10 +4,11 @@ import random
 
 # Constants
 VOL = 30  # Sound volume level
-GREEN = 0x00FF00
-YELLOW = 0xFFFF00
-ORANGE = 0xFF8C00
-RED = 0xFF0000
+GREEN = 0x008800
+YELLOW = 0x888800
+ORANGE = 0x884700
+RED = 0x880000
+BRIGHT_PURPLE = 0xFF00FF
 OFF = 0x000000  # No light
 INITIAL_TIME_LIMIT = 2000  # 2 seconds for bomb expiration
 INITIAL_BOMB_INTERVAL = 1200  # Initial bomb planting interval (in ms)
@@ -18,9 +19,9 @@ FAILURE_TONE = 220  # Frequency for failure sound
 
 # Color transition thresholds (percentage of time remaining)
 COLOR_THRESHOLDS = [
-    (0.25, RED),     # Less than 25% time remaining
-    (0.50, ORANGE),  # Less than 50% time remaining
-    (0.75, YELLOW),  # Less than 75% time remaining
+    (0, RED),     # Less than 33% time remaining
+    (0.33, ORANGE),     # Less than 33% time remaining
+    (0.66, YELLOW),  # Less than 66% time remaining
     (1.00, GREEN)    # Full time remaining
 ]
 
@@ -77,10 +78,10 @@ class BombGame:
             display.flush()
             self.last_bomb_time = current_time
 
-    def play_tone(self, frequency, duration_ms):
+    def play_tone(self, frequency, duration_ms, vol= VOL):
         """Play a tone with the given frequency and duration."""
-        synth = sndmixer.synth()
-        sndmixer.volume(synth, VOL)
+        synth = sndmixer.synth(),
+        sndmixer.volume(synth, vol)
         sndmixer.waveform(synth, 0)
         sndmixer.freq(synth, frequency)
         sndmixer.play(synth)
@@ -97,23 +98,25 @@ class BombGame:
         if not pressed:
             return
 
+        x, y = key_index % 4, key_index // 4
+
         if key_index in self.active_bombs:
             # Successful bomb defusal
             self.play_tone(SUCCESS_TONE, 90)
             del self.active_bombs[key_index]
-            x, y = key_index % 4, key_index // 4
             display.drawPixel(x, y, OFF)
             display.flush()
 
             self.score += 1
             # Make game harder
-            self.bomb_interval = max(MIN_BOMB_INTERVAL,
-                                     self.bomb_interval * INTERVAL_DECREASER)
+            self.bomb_interval = max(MIN_BOMB_INTERVAL, self.bomb_interval * INTERVAL_DECREASER)
         else:
+            display.drawPixel(x, y, BRIGHT_PURPLE)
+            display.flush()
             # Wrong button pressed - game over
             self.game_over = True
             print("Game Over! Score: " + str(self.score))
-            self.play_tone(FAILURE_TONE, 500)
+            self.play_tone(FAILURE_TONE, 1000, VOL*2)
 
     def update(self):
         """Update game state - plant new bombs and check for expired ones."""
