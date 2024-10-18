@@ -163,4 +163,4 @@ def do_update(arg):
 
 while True:
     game.update()
-    time.sleep_ms(50)
+    [time.sleep_ms(1) for i in range(0,50)]
