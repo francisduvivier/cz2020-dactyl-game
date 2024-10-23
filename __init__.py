@@ -1,7 +1,7 @@
 import display, keypad, time
 import sndmixer
 import random
-
+from machine import Timer
 # Constants
 VOL = 30  # Sound volume level
 GREEN = 0x008800
@@ -14,6 +14,7 @@ INITIAL_TIME_LIMIT = 2000  # 2 seconds for bomb expiration
 INITIAL_BOMB_INTERVAL = 1200  # Initial bomb planting interval (in ms)
 INTERVAL_DECREASER = 0.95
 MIN_BOMB_INTERVAL = 100  # Minimum interval for bomb planting
+PLANT_TONE = 390  # Frequency for success sound
 SUCCESS_TONE = 440  # Frequency for success sound
 FAILURE_TONE = 330  # Frequency for failure sound
 
@@ -78,6 +79,7 @@ class BombGame:
             display.drawPixel(x, y, GREEN)  # Start with green color
             display.flush()
             self.last_bomb_time = current_time
+            self.play_tone(PLANT_TONE, 30)
 
     def play_tone(self, frequency, duration_ms, vol = VOL):
         """Play a tone with the given frequency and duration."""
@@ -108,9 +110,7 @@ class BombGame:
             display.drawPixel(x, y, OFF)
             display.flush()
             # Successful bomb defusal
-            # self.play_tone(SUCCESS_TONE, 90)
-
-
+            self.play_tone(SUCCESS_TONE, 30)
             self.score += 1
             # Make game harder
             self.bomb_interval = max(MIN_BOMB_INTERVAL, self.bomb_interval * INTERVAL_DECREASER)
@@ -155,12 +155,8 @@ keypad.add_handler(game.handle_key)
 def do_update(arg):
     game.update()
 
-# # Create a Timer object
-# interval_timer = Timer(-1)
-#
-# # Initialize the timer to call the function every 1000 ms (1 second)
-# interval_timer.init(period=50, mode=Timer.PERIODIC, callback=do_update)
+# Create a Timer object
+interval_timer = Timer(0)
 
-while True:
-    game.update()
-    [time.sleep_ms(1) for i in range(0,50)]
+# Initialize the timer to call the function every 1000 ms (1 second)
+interval_timer.init(period=50, mode=Timer.PERIODIC, callback=do_update)
