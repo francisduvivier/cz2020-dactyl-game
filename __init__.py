@@ -25,7 +25,6 @@ COLOR_THRESHOLDS = [
     (0.66, YELLOW),  # Less than 66% time remaining
     (1.00, GREEN)    # Full time remaining
 ]
-
 class BombGame:
     def __init__(self):
         # Initialize sound
@@ -88,7 +87,7 @@ class BombGame:
         sndmixer.waveform(synth, 0)
         sndmixer.freq(synth, frequency)
         sndmixer.play(synth)
-        time.sleep_ms(duration_ms)
+        [ time.sleep_ms(1) for _ in range(duration_ms)]
         sndmixer.stop(synth)
 
     def handle_key(self, key_index, pressed):
