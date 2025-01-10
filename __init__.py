@@ -1,13 +1,16 @@
 import display, keypad, time
+import math
 import sndmixer
 import random
 from machine import Timer
+
 # Constants
 VOL = 30  # Sound volume level
 GREEN = 0x008800
 YELLOW = 0x888800
 ORANGE = 0x884700
 RED = 0x880000
+WHITE = 0x888888
 BRIGHT_PURPLE = 0xFF00FF
 OFF = 0x000000  # No light
 INITIAL_TIME_LIMIT = 2000  # 2 seconds for bomb expiration
@@ -18,13 +21,22 @@ PLANT_TONE = 390  # Frequency for success sound
 SUCCESS_TONE = 440  # Frequency for success sound
 FAILURE_TONE = 330  # Frequency for failure sound
 
+
+def displaydigit(colom, digit):
+    for bit in range(4):
+        if digit & (1 << bit):
+            display.drawPixel(3 - bit, colom, WHITE)
+
+
 # Color transition thresholds (percentage of time remaining)
 COLOR_THRESHOLDS = [
-    (0, RED),     # Less than 33% time remaining
-    (0.33, ORANGE),     # Less than 33% time remaining
+    (0, RED),  # Less than 33% time remaining
+    (0.33, ORANGE),  # Less than 33% time remaining
     (0.66, YELLOW),  # Less than 66% time remaining
-    (1.00, GREEN)    # Full time remaining
+    (1.00, GREEN)  # Full time remaining
 ]
+
+
 class BombGame:
     def __init__(self):
         # Initialize sound
@@ -33,8 +45,9 @@ class BombGame:
 
         # Game state
         self.active_bombs = {}  # Dictionary to track active bomb positions and their spawn times
-        self.last_active_bomb=-1
+        self.last_active_bomb = -1
         self.game_over = False
+        self.showed_score = False
         self.score = 0
         self.bomb_interval = INITIAL_BOMB_INTERVAL
         self.last_bomb_time = 0
@@ -43,6 +56,7 @@ class BombGame:
         """Reset the game state to initial conditions."""
         self.active_bombs.clear()
         self.game_over = False
+        self.showed_score = False
         self.score = 0
         self.bomb_interval = INITIAL_BOMB_INTERVAL
         self.last_bomb_time = 0
@@ -80,21 +94,26 @@ class BombGame:
             self.last_bomb_time = current_time
             self.play_tone(PLANT_TONE, 30)
 
-    def play_tone(self, frequency, duration_ms, vol = VOL):
+    def play_tone(self, frequency, duration_ms, vol=VOL):
         """Play a tone with the given frequency and duration."""
         synth = sndmixer.synth()
         sndmixer.volume(synth, vol)
         sndmixer.waveform(synth, 0)
         sndmixer.freq(synth, frequency)
         sndmixer.play(synth)
-        [ time.sleep_ms(1) for _ in range(duration_ms)]
+        [time.sleep_ms(1) for _ in range(duration_ms)]
         sndmixer.stop(synth)
 
     def handle_key(self, key_index, pressed):
         """Handle key press events."""
         if self.game_over:
             if pressed:
-                self.reset_game()
+                self.play_tone(SUCCESS_TONE, 500)
+                if self.showed_score:
+                    self.reset_game()
+                else:
+                    self.showed_score = True
+                    self.displayScore()
             return
 
         if not pressed:
@@ -118,8 +137,14 @@ class BombGame:
             display.flush()
             # Wrong button pressed - game over
             self.game_over = True
-            self.play_tone(FAILURE_TONE, 1000, vol=VOL*2)
+            self.play_tone(FAILURE_TONE, 1000, vol=VOL * 2)
             print("Game Over! Score: " + str(self.score))
+
+    def displayScore(self):
+        display.drawFill(OFF)
+        for col in range(0, 4):
+            displaydigit(col, math.floor((self.score / (10 ** (3 - col))) % 10))
+        display.flush()
 
     def update(self):
         """Update game state - plant new bombs and check for expired ones."""
@@ -141,8 +166,9 @@ class BombGame:
 
         if expired:
             self.game_over = True
-            self.play_tone(FAILURE_TONE, 1000, vol=VOL*2)
+            self.play_tone(FAILURE_TONE, 1000, vol=VOL * 2)
             print("Time ran out! Game Over! Score: " + str(self.score))
+
 
 # Create game instance and set up
 game = BombGame()
@@ -153,6 +179,7 @@ keypad.add_handler(game.handle_key)
 
 def do_update(arg):
     game.update()
+
 
 # Create a Timer object
 interval_timer = Timer(0)
