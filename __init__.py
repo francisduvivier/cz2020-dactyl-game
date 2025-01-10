@@ -139,6 +139,7 @@ class BombGame:
             self.game_over = True
             self.play_tone(FAILURE_TONE, 1000, vol=VOL * 2)
             print("Game Over! Score: " + str(self.score))
+            time.sleep_ms(1000)
 
     def displayScore(self):
         display.drawFill(OFF)
@@ -168,6 +169,7 @@ class BombGame:
             self.game_over = True
             self.play_tone(FAILURE_TONE, 1000, vol=VOL * 2)
             print("Time ran out! Game Over! Score: " + str(self.score))
+            time.sleep_ms(1000)
 
 
 # Create game instance and set up
