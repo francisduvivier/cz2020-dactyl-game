@@ -36,6 +36,8 @@ COLOR_THRESHOLDS = [
     (1.00, GREEN)  # Full time remaining
 ]
 
+def flush_display():
+    display.flush()
 
 class BombGame:
     def __init__(self):
@@ -61,7 +63,7 @@ class BombGame:
         self.bomb_interval = INITIAL_BOMB_INTERVAL
         self.last_bomb_time = 0
         display.drawFill(OFF)
-        display.flush()
+        flush_display()
 
     def get_bomb_color(self, elapsed_time):
         """Determine bomb color based on elapsed time."""
@@ -78,7 +80,7 @@ class BombGame:
             color = self.get_bomb_color(elapsed)
             x, y = pos % 4, pos // 4
             display.drawPixel(x, y, color)
-        display.flush()
+        flush_display()
 
     def plant_bomb(self):
         """Plant a bomb at a random available position."""
@@ -90,7 +92,7 @@ class BombGame:
             self.active_bombs[bomb_position] = current_time
             x, y = bomb_position % 4, bomb_position // 4
             display.drawPixel(x, y, GREEN)  # Start with green color
-            display.flush()
+            flush_display()
             self.last_bomb_time = current_time
             self.play_tone(PLANT_TONE, 30)
 
@@ -126,7 +128,7 @@ class BombGame:
             self.last_active_bomb = key_index
 
             display.drawPixel(x, y, OFF)
-            display.flush()
+            flush_display()
             # Successful bomb defusal
             self.play_tone(SUCCESS_TONE, 30)
             self.score += 1
@@ -134,18 +136,15 @@ class BombGame:
             self.bomb_interval = max(MIN_BOMB_INTERVAL, self.bomb_interval * INTERVAL_DECREASER)
         else:
             display.drawPixel(x, y, BRIGHT_PURPLE)
-            display.flush()
+            flush_display()
             # Wrong button pressed - game over
-            self.game_over = True
-            self.play_tone(FAILURE_TONE, 1000, vol=VOL * 2)
-            print("Game Over! Score: " + str(self.score))
-            time.sleep_ms(1000)
+            self.handle_game_over("Game Over because of wrong button! Score: " + str(self.score))
 
     def displayScore(self):
         display.drawFill(OFF)
         for col in range(0, 4):
             displaydigit(col, math.floor((self.score / (10 ** (3 - col))) % 10))
-        display.flush()
+        flush_display()
 
     def update(self):
         """Update game state - plant new bombs and check for expired ones."""
@@ -166,10 +165,14 @@ class BombGame:
                    if time.ticks_diff(current_time, spawn_time) > INITIAL_TIME_LIMIT]
 
         if expired:
-            self.game_over = True
-            self.play_tone(FAILURE_TONE, 1000, vol=VOL * 2)
-            print("Time ran out! Game Over! Score: " + str(self.score))
-            time.sleep_ms(1000)
+            failMsg = "Time ran out! Game Over! Score: " + str(self.score)
+            self.handle_game_over(failMsg)
+
+    def handle_game_over(self, failMsg):
+        self.game_over = True
+        self.play_tone(FAILURE_TONE, 1000, vol=VOL * 2)
+        print(failMsg)
+        time.sleep_ms(500)
 
 
 # Create game instance and set up
@@ -181,6 +184,7 @@ keypad.add_handler(game.handle_key)
 
 def do_update(arg):
     game.update()
+    display.flush()
 
 
 # Create a Timer object
