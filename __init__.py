@@ -115,7 +115,7 @@ class BombGame:
                     self.reset_game()
                 else:
                     self.showed_score = True
-                    self.displayScore()
+                    self.display_score()
             return
 
         if not pressed:
@@ -140,7 +140,7 @@ class BombGame:
             # Wrong button pressed - game over
             self.handle_game_over("Game Over because of wrong button! Score: " + str(self.score))
 
-    def displayScore(self):
+    def display_score(self):
         display.drawFill(OFF)
         for col in range(0, 4):
             displaydigit(col, math.floor((self.score / (10 ** (3 - col))) % 10))
@@ -149,6 +149,8 @@ class BombGame:
     def update(self):
         """Update game state - plant new bombs and check for expired ones."""
         if self.game_over:
+            if self.showed_score:
+                self.display_score()
             return
 
         current_time = time.ticks_ms()
