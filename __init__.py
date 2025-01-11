@@ -184,7 +184,6 @@ keypad.add_handler(game.handle_key)
 
 def do_update(arg):
     game.update()
-    display.flush()
 
 
 # Create a Timer object
